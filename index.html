@@ -1,7 +1,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<title>Augmented Reality</title>
+<title>PONG</title>
 <script type="text/javascript" src="three.js/build/three.js"></script> 
 <script type="text/javascript" src="arucojs/src/svd.js"></script> 
 <script type="text/javascript" src="arucojs/src/posit1.js"></script> 
@@ -9,19 +9,18 @@
 <script type="text/javascript" src="arucojs/src/aruco.js"></script> 
 <script>
 var video, canvas, context, imageData, detector, posit;
-var renderer1, renderer2, renderer3;
+var renderer;
 var markersLength;
 var nbRaquettes = 2;
 var scene1, scene2, scene3, scene4;
-var camera1, camera2, camera3, camera4;
+var camera3, camera4;
 var plateau, texture;
 var raquette1, raquette2;
 var idPlateau = 17;
 var idRaquette1 = 213;
-var step = 0.0;
 var modelSize = 60.0; //millimeters
-var offsetx = 15;
-var offsety = 10;
+var offsetx = 300;
+var offsety = 150;
 var rotation_inv, translation_inv;
 
 function onLoad(){
@@ -38,13 +37,15 @@ function onLoad(){
 function init(){
 	navigator.getUserMedia({video:true}, 
 			function (stream){
-			if (window.webkitURL) {
-			video.src = window.webkitURL.createObjectURL(stream);
-			} else if (video.mozSrcObject !== undefined) {
-			video.mozSrcObject = stream;
-			} else {
-			video.src = stream;
-			}
+				if (window.webkitURL) {
+					video.src = window.webkitURL.createObjectURL(stream);
+				} 
+				else if (video.mozSrcObject !== undefined) {
+					video.mozSrcObject = stream;
+				} 
+				else {
+					video.src = stream;
+				}
 			},
 			function(error){
 			}
@@ -89,28 +90,28 @@ function drawCorners(markers){
 	}
 };
 function createRenderers(){
-	renderer3 = new THREE.WebGLRenderer();
-	renderer3.setClearColor(0xffffff, 1);
-	renderer3.setSize(canvas.width, canvas.height);
-	document.getElementById("container").appendChild(renderer3.domElement);
-	/*scene3 = new THREE.Scene();
+	renderer = new THREE.WebGLRenderer();
+	renderer.setClearColor(0xffffff, 1);
+	renderer.setSize(canvas.width, canvas.height);
+	document.getElementById("container").appendChild(renderer.domElement);
+	scene3 = new THREE.Scene();
 	  camera3 = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5);
 	  scene3.add(camera3);
-	 */
+	
 	scene4 = new THREE.Scene();
 	//camera4 = new THREE.OrthographicCamera(-canvas.width,canvas.width,canvas.height,-canvas.height);
 	camera4 = new THREE.PerspectiveCamera(40, canvas.width / canvas.height, 1, 1000);
 	scene4.add(camera4);
 };
 function render(){
-	renderer3.clear();
-	renderer3.autoClear = false;
-	//	renderer3.render(scene3, camera3);
-	renderer3.render(scene4, camera4);
+	renderer.clear();
+	renderer.autoClear = false;
+		renderer.render(scene3, camera3);
+	renderer.render(scene4, camera4);
 };
 function createScenes(){
-	//texture = createTexture();
-	//scene3.add(texture);
+	texture = createTexture();
+	scene3.add(texture);
 	plateau = createPlateau();
 	raquette1 = createRaquette();
 	raquette2 = createRaquette();
@@ -143,7 +144,7 @@ function createPlateau(){
 	return object;
 };
 function updateScenes(markers){
-	var corners, corner, pose, i;
+	var corners, corner, pose, i, j, k;
 	markersLength = markers.length;
 	if(markersLength > 0) {
 		var PlateauMarker;
@@ -236,9 +237,10 @@ function updateScenes(markers){
 	}
 	else {
 		scene4.remove(raquette1);
+		scene4.remove(raquette2);
 		scene4.remove(plateau);
 	}
-	//texture.children[0].material.map.needsUpdate = true;
+	texture.children[0].material.map.needsUpdate = true;
 };
 function updateObject(object, rotation, translation){
 	object.rotation.x = -Math.asin(-rotation[1][2]);
