@@ -115,6 +115,9 @@ function createScenes(){
 	plateau = createPlateau();
 	raquette1 = createRaquette();
 	raquette2 = createRaquette();
+	plateau.add(raquette1);
+	plateau.add(raquette2);
+	scene4.add(plateau);
 };
 
 function createRaquette(){
@@ -158,17 +161,14 @@ function updateScenes(markers){
 			if(markers[i].id == idPlateau) {
 				PlateauMarker = markers[i];
 				indexPlateau = i;
-				scene4.add(plateau);
 			}
 			else if (markers[i].id == idRaquette1) {
 				Raquette1Marker = markers[i];
 				indexRaquette1 = i;
-				scene4.add(raquette1);
 			}
 			else {
 				Raquette2Marker = markers[i];
 				indexRaquette2 = i;
-				scene4.add(raquette2);
 			}
 		}
 	/*
@@ -176,7 +176,7 @@ function updateScenes(markers){
 			var mark = markers[0];
 			markers[0] = markers[indexPlateau];
 			markers[indexPlateau] = mark;
-		}
+		}a
 */
 
 		/*for (i = 0; i < markersLength; i++){
@@ -216,6 +216,7 @@ function updateScenes(markers){
 					corners = centerLandMark(corners);
 					pose = posit.pose(corners);
 					updateObject(plateau, pose.bestRotation, pose.bestTranslation);
+					plateau.visible = true;
 					rotation_inv = transpose(pose.bestRotation);
 					translation_inv =multiplyMatrix(moins(rotation_inv), pose.bestTranslation);
 					for (k = 0; k < markersLength; k++) {
@@ -224,10 +225,14 @@ function updateScenes(markers){
 							corners = centerLandMark(corners);
 							pose = posit.pose(corners);
 							if(k == indexRaquette1) {
-								updateObject(raquette1, pose.bestRotation, pose.bestTranslation);//multiplyMatrix(pose.bestRotation, rotation_inv), multiplyMatrix(pose.bestTranslation, translation_inv));
+							//TODO : placer à gauche la raquette1
+								updateObject(raquette1, multiplyMatrix(pose.bestRotation, rotation_inv), multiplyMatrix(pose.bestTranslation, translation_inv));
+								raquette1.vsible = true;
 							}
 							else {
+							//TODO : placer à droite la raquette2
 								updateObject(raquette2, multiplyMatrix(pose.bestRotation, rotation_inv), multiplyMatrix(pose.bestTranslation, translation_inv));
+								raquette2.visible = true;
 							}
 						}	
 					}
@@ -236,9 +241,9 @@ function updateScenes(markers){
 		/*}*/
 	}
 	else {
-		scene4.remove(raquette1);
-		scene4.remove(raquette2);
-		scene4.remove(plateau);
+		raquette1.visible = false;
+		raquette2.visible = false;
+		plateau.visible = false;
 	}
 	texture.children[0].material.map.needsUpdate = true;
 };
