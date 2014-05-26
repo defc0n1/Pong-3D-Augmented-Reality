@@ -1,5 +1,6 @@
 <html>
 <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <title>Augmented Reality</title>
 <script type="text/javascript" src="three.js/build/three.js"></script> 
 <script type="text/javascript" src="arucojs/src/svd.js"></script> 
@@ -9,13 +10,20 @@
 <script>
 var video, canvas, context, imageData, detector, posit;
 var renderer1, renderer2, renderer3;
+var markersLength;
+var nbRaquettes = 2;
 var scene1, scene2, scene3, scene4;
 var camera1, camera2, camera3, camera4;
-var plane1, plane2, model, texture;
+var plateau, texture;
+var raquette1, raquette2;
+var idPlateau = 17;
+var idRaquette1 = 213;
 var step = 0.0;
 var modelSize = 60.0; //millimeters
-var offsetx = 150;
-var offsety = 100;
+var offsetx = 15;
+var offsety = 10;
+var rotation_inv, translation_inv;
+
 function onLoad(){
 	video = document.getElementById("video");
 	canvas = document.getElementById("canvas");
@@ -40,7 +48,7 @@ function init(){
 			},
 			function(error){
 			}
-	);
+			);
 	detector = new AR.Detector();
 	posit = new POS.Posit(modelSize, canvas.width);
 	createRenderers();
@@ -81,55 +89,37 @@ function drawCorners(markers){
 	}
 };
 function createRenderers(){
-	/*renderer1 = new THREE.WebGLRenderer();
-	renderer1.setClearColorHex(0xffff00, 1);
-	renderer1.setSize(canvas.width, canvas.height);
-	document.getElementById("container1").appendChild(renderer1.domElement);
-	scene1 = new THREE.Scene();
-	camera1 = new THREE.PerspectiveCamera(40, canvas.width / canvas.height, 1, 1000);
-	scene1.add(camera1);
-	renderer2 = new THREE.WebGLRenderer();
-	renderer2.setClearColorHex(0xffff00, 1);
-	renderer2.setSize(canvas.width, canvas.height);
-	document.getElementById("container2").appendChild(renderer2.domElement);
-	scene2 = new THREE.Scene();
-	camera2 = new THREE.PerspectiveCamera(40, canvas.width / canvas.height, 1, 1000);
-	scene2.add(camera2);*/
 	renderer3 = new THREE.WebGLRenderer();
-	renderer3.setClearColorHex(0xffffff, 1);
+	renderer3.setClearColor(0xffffff, 1);
 	renderer3.setSize(canvas.width, canvas.height);
 	document.getElementById("container").appendChild(renderer3.domElement);
-	scene3 = new THREE.Scene();
-	camera3 = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5);
-	scene3.add(camera3);
+	/*scene3 = new THREE.Scene();
+	  camera3 = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5);
+	  scene3.add(camera3);
+	 */
 	scene4 = new THREE.Scene();
+	//camera4 = new THREE.OrthographicCamera(-canvas.width,canvas.width,canvas.height,-canvas.height);
 	camera4 = new THREE.PerspectiveCamera(40, canvas.width / canvas.height, 1, 1000);
 	scene4.add(camera4);
 };
 function render(){
-/*	renderer1.clear();
-	renderer1.render(scene1, camera1);
-	renderer2.clear();
-	renderer2.render(scene2, camera2);*/
-	renderer3.autoClear = false;
 	renderer3.clear();
-	renderer3.render(scene3, camera3);
+	renderer3.autoClear = false;
+	//	renderer3.render(scene3, camera3);
 	renderer3.render(scene4, camera4);
 };
 function createScenes(){
-/*	plane1 = createPlane();
-	scene1.add(plane1);
-	plane2 = createPlane();
-	scene2.add(plane2);*/
-	texture = createTexture();
-	scene3.add(texture);
-	model = createModel();
-	scene4.add(model);
+	//texture = createTexture();
+	//scene3.add(texture);
+	plateau = createPlateau();
+	raquette1 = createRaquette();
+	raquette2 = createRaquette();
 };
-function createPlane(){
+
+function createRaquette(){
 	var object = new THREE.Object3D(),
-	    geometry = new THREE.PlaneGeometry(1.0, 1.0, 0.0),
-	    material = new THREE.MeshNormalMaterial(),
+	    geometry = new THREE.BoxGeometry(modelSize, modelSize, 0),
+	    material = new THREE.MeshBasicMaterial({ color:0xfe0008}),
 	    mesh = new THREE.Mesh(geometry, material);
 	object.add(mesh);
 	return object;
@@ -144,38 +134,113 @@ function createTexture(){
 	object.add(mesh);
 	return object;
 };
-function createModel(){
+function createPlateau(){
 	var object = new THREE.Object3D(),
-	    geometry = new THREE.PlaneGeometry(modelSize + offsetx, modelSize+offsety),
-	    material = new THREE.MeshBasicMaterial( {color:0xffff00, side: THREE.DoubleSide} ),
+	    geometry = new THREE.BoxGeometry(modelSize + offsetx, modelSize+offsety, 0),
+	    material = new THREE.MeshBasicMaterial( {color:0xff00ff, wireframe : true, wireframeLineWidth : 3} ),
 	    mesh = new THREE.Mesh(geometry, material);
 	object.add(mesh);
 	return object;
 };
 function updateScenes(markers){
 	var corners, corner, pose, i;
-	if (markers.length > 0){
-		corners = markers[0].corners;
-		for (i = 0; i < corners.length; ++ i){
-			corner = corners[i];
-			corner.x = corner.x - (canvas.width / 2);
-			corner.y = (canvas.height / 2) - corner.y;
+	markersLength = markers.length;
+	if(markersLength > 0) {
+		var PlateauMarker;
+		var indexPlateau = -1;
+		var Raquette1Marker;
+		var Raquette2Marker;
+		var indexRaquette1 = -1;
+		var indexRaquette2 = -1;
+		//On récupère les indices des markers
+		for (i = 0 ; i < markersLength; i++) {
+			if(markers[i].id == idPlateau) {
+				PlateauMarker = markers[i];
+				indexPlateau = i;
+				scene4.add(plateau);
+			}
+			else if (markers[i].id == idRaquette1) {
+				Raquette1Marker = markers[i];
+				indexRaquette1 = i;
+				scene4.add(raquette1);
+			}
+			else {
+				Raquette2Marker = markers[i];
+				indexRaquette2 = i;
+				scene4.add(raquette2);
+			}
 		}
-		pose = posit.pose(corners);
-		/*updateObject(plane1, pose.bestRotation, pose.bestTranslation);
-		updateObject(plane2, pose.alternativeRotation, pose.alternativeTranslation);*/
-		updateObject(model, pose.bestRotation, pose.bestTranslation);
-		/*updatePose("pose1", pose.bestError, pose.bestRotation, pose.bestTranslation);
-		updatePose("pose2", pose.alternativeError, pose.alternativeRotation, pose.alternativeTranslation);
-		*///step += 0.025;
-		/*model.rotation.z -= step;*/
+	/*
+		if(indexPlateau != 0) {
+			var mark = markers[0];
+			markers[0] = markers[indexPlateau];
+			markers[indexPlateau] = mark;
+		}
+*/
+
+		/*for (i = 0; i < markersLength; i++){
+			corners = markers[i].corners;
+			//On centre le repère image et le repère caméra
+			for (j = 0; j < corners.length; ++ j){
+					corner = corners[j];
+					corner.x = corner.x - (canvas.width / 2);
+					corner.y = (canvas.height / 2) - corner.y;
+			}
+
+			//Si c est le Plateau
+			if (i == indexPlateau) {
+				pose = posit.pose(corners);
+				rotation_inv = transpose(pose.bestRotation);
+				translation_inv =multiplyMatrix(moins(rotation_inv), pose.bestTranslation);
+				updateObject(plateau, pose.bestRotation, pose.bestTranslation);
+			}
+			//Si c est un cible raquette.
+			else if (i == indexRaquette1) {
+					//inverser matrice de rotation translation du plateau puis 
+					// muttiplier t ou R de la raquette par la matrice inverdée calculée
+					// donc on a la raquette dans le repère plateau
+				pose = posit.pose(corners);
+				updateObject(raquette1, multiplyMatrix(pose.bestRotation, rotation_inv), multiplyMatrix(pose.bestTranslation, translation_inv));
+			}*/
+			/*else {
+				//On met à jour le terrain	
+				pose = posit.pose(corners);
+				updateObject(raquette2, pose.bestRotation, pose.bestTranslation);
+			}*/
+
+
+			for(j = 0; j < markersLength; j++) {
+				if(j == indexPlateau) {
+					corners = markers[j].corners;
+					corners = centerLandMark(corners);
+					pose = posit.pose(corners);
+					updateObject(plateau, pose.bestRotation, pose.bestTranslation);
+					rotation_inv = transpose(pose.bestRotation);
+					translation_inv =multiplyMatrix(moins(rotation_inv), pose.bestTranslation);
+					for (k = 0; k < markersLength; k++) {
+						if(k != indexPlateau) {
+							corners = markers[k].corners;
+							corners = centerLandMark(corners);
+							pose = posit.pose(corners);
+							if(k == indexRaquette1) {
+								updateObject(raquette1, pose.bestRotation, pose.bestTranslation);//multiplyMatrix(pose.bestRotation, rotation_inv), multiplyMatrix(pose.bestTranslation, translation_inv));
+							}
+							else {
+								updateObject(raquette2, multiplyMatrix(pose.bestRotation, rotation_inv), multiplyMatrix(pose.bestTranslation, translation_inv));
+							}
+						}	
+					}
+				}	
+			}
+		/*}*/
 	}
-	texture.children[0].material.map.needsUpdate = true;
+	else {
+		scene4.remove(raquette1);
+		scene4.remove(plateau);
+	}
+	//texture.children[0].material.map.needsUpdate = true;
 };
 function updateObject(object, rotation, translation){
-	/*object.scale.x = modelSize;
-	object.scale.y = modelSize;
-	object.scale.z = modelSize;*/
 	object.rotation.x = -Math.asin(-rotation[1][2]);
 	object.rotation.y = -Math.atan2(rotation[0][2], rotation[2][2]);
 	object.rotation.z = Math.atan2(rotation[1][0], rotation[1][1]);
@@ -198,28 +263,76 @@ function updatePose(id, error, rotation, translation){
 		+ " pitch: " + Math.round(-pitch * 180.0/Math.PI)
 		+ " roll: " + Math.round(roll * 180.0/Math.PI);
 };
+
+
+function transpose (rotation) {
+	var Rotation = rotation;
+	var old12 = Rotation[0][1];
+	Rotation[0][1] = Rotation[1][0];
+	Rotation[1][0] = old12;	
+	var old13 = Rotation[0][2];
+	Rotation[0][2] = Rotation[2][0];
+	Rotation[2][0] = old13;	
+
+	var old23 = Rotation[1][2];
+	Rotation[1][2] = Rotation[2][1];
+	Rotation[2][1] = old23;	
+	return Rotation;
+};
+
+
+function multiplyMatrix(m1, m2) {
+	var result = [];
+	for(var j = 0; j < m2.length; j++) {
+		result[j] = [];
+		for(var k = 0; k < m1[0].length; k++) {
+			var sum = 0;
+			for(var i = 0; i < m1.length; i++) {
+				sum += m1[i][k] * m2[j][i];
+			}
+			result[j].push(sum);
+		}
+	}
+	return result;
+}
+
+function moins(m) {
+	var result = [];
+	for (var j = 0; j < m.length; j++) {
+		result[j] = [];
+		for (var i = 0; i < m[0].length; i++) {
+			result[j][i] = -m[j][i];
+		}
+	}
+	return result;
+}
+
+function centerLandMark (corners) {
+	var result = [];
+	//On centre le repère image et le repère caméra
+	for (j = 0; j < corners.length; ++ j){
+		var corner = corners[j];
+		corner.x = corner.x - (canvas.width / 2);
+		corner.y = (canvas.height / 2) - corner.y;
+		result[j] = corner;
+	}
+	return result;
+}
+
+
 window.onload = onLoad;
 </script>
 </head>
 <body style="text-align: center; font-family: monospace;">
-<video id="video" width=640 height=480 autoplay="true" style="display:none;"></video>
-<div style="margin: 10px;"><strong>-= Augmented Reality =-</strong></div>
+<video id="video" width=320 height=240 autoplay="true" style="display:none;"></video>
+<div style="margin: 10px;"><strong>PONG</strong></div>
 <div style="width: 100%;">
 <div style="width: 650px; margin-left:auto; margin-right:auto;">
-<canvas id="canvas" style="width: 640px; height: 480px; float: left; border: solid 1px black;"></canvas>
-<div id="container" style="width: 640px; height: 480px; float: left; border: solid 1px black; background: green;"></div>
+<canvas id="canvas" style="width: 320px; height: 240px; float: left; border: solid 1px black;"></canvas>
+<div id="container" style="width: 320px; height: 240px; float: left; border: solid 1px black; background: green;"></div>
 <div style="clear: both;"></div>
-<!--<div style="float: left; border: solid 1px black;">
-<div id="container1" style="width: 320px; height: 240px; background: red;"></div>
-<div id="pose1"></div>
-</div>
-<div style="float: left; border: solid 1px black;">
-<div id="container2" style="width: 320px; height: 240px; background: blue;"></div>
-<div id="pose2"></div>--!>
 </div>
 </div>
 </div>
-<div style="clear: both;"></div>
-<div style="margin: 15px;"><strong>Powered by <a href="http://code.google.com/p/js-aruco/">js-aruco</a> and <a href="https://github.com/mrdoob/three.js">Three.js</a></strong></div>
 </body>
 </html>
