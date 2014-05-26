@@ -1,12 +1,22 @@
 <html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <head>
 <title>Augmented Reality Marker Detector</title>
 <script type="text/javascript" src="arucojs/src/samples/getusermedia/libs/polyfill.js"></script> 
 <script type="text/javascript" src="arucojs/src/cv.js"></script> 
 <script type="text/javascript" src="arucojs/src/aruco.js"></script> 
-<script type="text/javascript" src="threejs/src/Three.js"></script>
+<script type="text/javascript" src="arucojs/src/posit1.js"></script> 
+<script type="text/javascript" src="arucojs/src/svd.js"></script> 
+<script type="text/javascript" src="three.js/build/three.js"></script>
 <script>
-var video, canvas, context, imageData, detector, posit;
+var video, canvas, context, imageData, detector, posit, modelSize;
+ var renderer1;
+
+    var scene1, scene2;
+
+    var camera1, camera2;
+
+    var model, texture;
 
 function onLoad(){
 	video = document.getElementById("video");
@@ -15,9 +25,8 @@ function onLoad(){
 	canvas.width = parseInt(canvas.style.width);
 	canvas.height = parseInt(canvas.style.height);
 	navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
-
+	modelSize = 60.0; //millimeters
 	if (navigator.getUserMedia){
-
 		function successCallback(stream){
 			if (window.webkitURL) {
 				video.src = window.webkitURL.createObjectURL(stream);
@@ -32,11 +41,11 @@ function onLoad(){
 		navigator.getUserMedia({video: true}, successCallback, errorCallback);
 		detector = new AR.Detector();
 		posit = new POS.Posit(modelSize, canvas.width);
-
+		createRenderers();
+		createScenes();
 		requestAnimationFrame(tick);
 	}
 }
-
 function tick(){
 	requestAnimationFrame(tick);
 	if (video.readyState === video.HAVE_ENOUGH_DATA){
@@ -44,55 +53,25 @@ function tick(){
 		var markers = detector.detect(imageData);
 		drawCorners(markers);
 		drawId(markers);
+		render();
 	}
 }
-
 function snapshot(){
 	context.drawImage(video, 0, 0, canvas.width, canvas.height);
 	imageData = context.getImageData(0, 0, canvas.width, canvas.height);
 }
-
 function drawCorners(markers){
 	var corners, corner, i, j;
 	context.lineWidth = 3;
 	for (i = 0; i !== markers.length; ++ i){
-
 		corners = markers[i].corners;
-		//Le repère de la caméra part en haut à gauche x vers la droite, y vers le bas
-		// Donc on trie les markers pour les mettre dans l'ordre
-		/*var permut = true;
-		  while (permut) {
-		  permut = false;
-		  for (i = 0; i < corners.length-1; i++) {
-		//Si le x de i est plus grnad que le x de i+1.
-		if(corners[i].x > corners[i+1].x) {
-		var val = corners[i];
-		corners[i] = corners[i+1];
-		corners[i+1] = val;
-		permut = true;
-		}
-		//S'ils sont sur la meme colonne
-		if (corners[i].x == corners[i+1].x) {
-		//Si le y de i est plus grnad que le y de i+1.
-		if(corners[i].y > corners[i+1].y) {
-		var val = corners[i];
-		corners[i] = corners[i+1];
-		corners[i+1] = val;
-		permut = true;
-		}
-		}		
-		}
-		}*/
 		context.strokeStyle = "green";
 		context.strokeRect(corners[0].x - 2, corners[0].y - 2, 4, 4);
 		context.strokeStyle = "yellow";
 		context.strokeRect(corners[1].x - 2, corners[1].y - 2, 4, 4);
 		context.strokeStyle = "violet";
 		context.strokeRect(corners[2].x - 2, corners[2].y - 2, 4, 4);
-
-
-		context.strokeStyle = "red";
-		context.beginPath();
+		pose = posit.pose(corners);
 		//On defini un chemin qui fait le tour de la cible
 		var offsetx = 50;
 		var offsety = 80;
@@ -102,25 +81,28 @@ function drawCorners(markers){
 			corner = corners[j];
 			corner.x += offsetx*binx;
 			corner.y += offsety*biny;
+			corners[j] = corner;
 			if(j%2 == 0){
 				offsetx *= -1;
 			}
 			if(j%2 ==1) {
 				offsety *= -1;
-
 			}	 
 		}
+		//		updateObject(corners, pose.bestRotation, pose.bestTranslation);
+		context.strokeStyle = "red";
+		context.beginPath();
 		//On le trace
-		
-			context.moveTo(corner.x + offsetx*binx,  corner.y + offsety*biny);
+
+		for(j = 0; j < corners.length; j++) {
+			context.moveTo(corner.x,  corner.y);
 			corner = corners[(j + 1) % corners.length];
-			context.lineTo(corner.x  + offsetx*binx, corner.y + offsety*biny);
-		pose = posit.pose(corners);
+			context.lineTo(corner.x, corner.y);
+		}
 		context.stroke();
 		context.closePath();
 	}
 }
-
 function drawId(markers){
 	var corners, corner, x, y, i, j;
 	context.strokeStyle = "blue";
@@ -137,72 +119,172 @@ function drawId(markers){
 		context.strokeText(markers[i].id, x, y)
 	}
 }
-
 function updateObject(object, rotation, translation){
-
 	object.scale.x = modelSize;
-
 	object.scale.y = modelSize;
-
 	object.scale.z = modelSize;
-
-
-
 	object.rotation.x = -Math.asin(-rotation[1][2]);
-
 	object.rotation.y = -Math.atan2(rotation[0][2], rotation[2][2]);
-
 	object.rotation.z = Math.atan2(rotation[1][0], rotation[1][1]);
-
-
-
 	object.position.x = translation[0];
-
 	object.position.y = translation[1];
-
 	object.position.z = -translation[2];
-
 };
-
-
-
 function updatePose(id, error, rotation, translation){
-
 	var yaw = -Math.atan2(rotation[0][2], rotation[2][2]);
-
 	var pitch = -Math.asin(-rotation[1][2]);
-
 	var roll = Math.atan2(rotation[1][0], rotation[1][1]);
-
-
-
 	var d = document.getElementById(id);
-
 	d.innerHTML = " error: " + error
-
 		+ "<br/>"
-
 		+ " x: " + (translation[0] | 0)
-
 		+ " y: " + (translation[1] | 0)
-
 		+ " z: " + (translation[2] | 0)
-
 		+ "<br/>"
-
 		+ " yaw: " + Math.round(-yaw * 180.0/Math.PI)
-
 		+ " pitch: " + Math.round(-pitch * 180.0/Math.PI)
-
 		+ " roll: " + Math.round(roll * 180.0/Math.PI);
+};
+function createRenderers(){
+	renderer1 = new THREE.WebGLRenderer();
+
+	renderer1.setClearColorHex(0xffffff, 1);
+
+	renderer1.setSize(canvas.width, canvas.height);
+
+	document.getElementById("container").appendChild(renderer1.domElement);
+	scene1 = new THREE.Scene();
+	camera1 = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5);
+	scene1.add(camera1);
+
+	scene2 = new THREE.Scene();
+
+	camera2 = new THREE.PerspectiveCamera(40, canvas.width / canvas.height, 1, 1000);
+
+	scene2.add(camera2);
 
 };
+
+function render(){
+
+ renderer1.autoClear = false;
+
+      renderer1.clear();
+
+      renderer1.render(scene1, camera1);
+
+      renderer1.render(scene2, camera2);
+
+};
+
+function createScenes(){
+ texture = createTexture();
+
+      scene1.add(texture);
+
+    
+
+      /*model = createModel();
+
+      scene2.add(model);*/
+
+};
+
+function createPlane(){
+	var object = new THREE.Object3D(),
+	    geometry = new THREE.PlaneGeometry(1.0, 1.0, 0.0),
+	    material = new THREE.MeshNormalMaterial(),
+	    mesh = new THREE.Mesh(geometry, material);
+
+	object.add(mesh);
+
+	return object;
+};
+
+function createTexture(){
+	var texture = new THREE.Texture(video),
+	    object = new THREE.Object3D(),
+	    geometry = new THREE.PlaneGeometry(1.0, 1.0, 0.0),
+	    material = new THREE.MeshBasicMaterial( {map: texture, depthTest: false, depthWrite: false} ),
+	    mesh = new THREE.Mesh(geometry, material);
+
+	object.position.z = -1;
+
+	object.add(mesh);
+
+	return object;
+};
+
+function createModel(){
+	var object = new THREE.Object3D(),
+	    geometry = new THREE.SphereGeometry(0.5, 15, 15, Math.PI),
+	    texture = THREE.ImageUtils.loadTexture("textures/earth.jpg"),
+	    material = new THREE.MeshBasicMaterial( {map: texture} ),
+	    mesh = new THREE.Mesh(geometry, material);
+
+	object.add(mesh);
+
+	return object;
+};
+
+ function updateScenes(markers){
+
+      var corners, corner, pose, i;
+
+      
+
+      if (markers.length > 0){
+
+        corners = markers[0].corners;
+
+        
+
+        for (i = 0; i < corners.length; ++ i){
+
+          corner = corners[i];
+
+          
+
+          corner.x = corner.x - (canvas.width / 2);
+
+          corner.y = (canvas.height / 2) - corner.y;
+
+        }
+
+        
+
+        pose = posit.pose(corners);
+
+        
+
+        //updateObject(model, pose.bestRotation, pose.bestTranslation);
+
+
+
+        //updatePose("pose1", pose.bestError, pose.bestRotation, pose.bestTranslation);
+
+       // updatePose("pose2", pose.alternativeError, pose.alternativeRotation, pose.alternativeTranslation);
+
+        
+
+        step += 0.025;
+
+        
+
+        model.rotation.z -= step;
+
+      }
+
+      
+
+      texture.children[0].material.map.needsUpdate = true;
+
+    };
+
 
 
 window.onload = onLoad;
-
 </script>
-
 </head>
 
 <body style="font-family: monospace;">
@@ -210,7 +292,7 @@ window.onload = onLoad;
 <div style="margin: 10px;"><strong>-= Augmented Reality Marker Detector =-</strong></div>
 <video id="video" autoplay="true" style="display:none;"></video>
 <canvas id="canvas" style="width:640px; height:480px;"></canvas>
-<div style="margin: 15px;"><strong>Powered by <a href="http://code.google.com/p/js-aruco/">js-aruco</a></strong></div>
+<div id="container" style="width: 640px; height: 480px; float: left; border: solid 1px black; background: green;"></div>
 </center>
 </body>
 </html>
