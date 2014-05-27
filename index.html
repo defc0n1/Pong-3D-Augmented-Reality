@@ -7,24 +7,30 @@
 <script type="text/javascript" src="arucojs/src/posit1.js"></script> 
 <script type="text/javascript" src="arucojs/src/cv.js"></script> 
 <script type="text/javascript" src="arucojs/src/aruco.js"></script> 
+<script type="text/javascript" src="creation.js"></script> 
+<script type="text/javascript" src="ball.js"></script> 
+<script type="text/javascript" src="transpose.js"></script> 
 <script>
 var video, canvas, context, imageData, detector, posit;
 var renderer;
 var markersLength;
-var nbRaquettes = 2;
-var scene1, scene2, scene3, scene4;
+var scene3, scene4;
 var camera3, camera4;
-var plateau, texture;
+var rotation_inv, translation_inv;
+var deep = 0;
+//Paddles variables
+var modelSize = 60.0; //millimeters
+var offsetx = modelSize*4;
+var offsety = modelSize*2;
+var decalage_raquette = 0;
 var raquette1, raquette2;
 var idPlateau = 17;
 var idRaquette1 = 213;
-
-//Paddles variables
-var modelSize = 60.0; //millimeters
-var offsetx = 150;
-var offsety = 300;
-
+var raquette1DirY = 0, raquette2DirY = 0, paddleSpeed = 3;
+var paddleWidth = modelSize/4, paddleHeight = modelSize, paddleDepth = 10, paddleQuality = 1;
+var center1, center2, center3;
 //field variables
+var plateau, texture;
 var fieldWidth = modelSize + offsetx;
 var fieldHeight = modelSize + offsety;
 
@@ -32,7 +38,6 @@ var fieldHeight = modelSize + offsety;
 var ball;
 var ballDirX = 1, ballDirY = 1, ballSpeed = 2;
 
-var rotation_inv, translation_inv;
 
 function onLoad(){
 	video = document.getElementById("video");
@@ -45,6 +50,7 @@ function onLoad(){
 		init();
 	}
 };
+
 function init(){
 	navigator.getUserMedia({video:true}, 
 			function (stream){
@@ -67,6 +73,62 @@ function init(){
 	createScenes();
 	requestAnimationFrame(tick);
 };
+	
+function createRenderers(){
+	renderer = new THREE.WebGLRenderer();
+	renderer.setClearColor(0xffffff, 1);
+	renderer.setSize(canvas.width, canvas.height);
+	document.getElementById("container").appendChild(renderer.domElement);
+	scene3 = new THREE.Scene();
+	camera3 = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5);
+	scene3.add(camera3);
+	
+	scene4 = new THREE.Scene();
+	//camera4 = new THREE.OrthographicCamera(-canvas.width,canvas.width,canvas.height,-canvas.height);
+	camera4 = new THREE.PerspectiveCamera(50, canvas.width / canvas.height, 1, 10000);
+	scene4.add(camera4);
+};
+
+function createScenes(){
+	//Create texture with video
+	texture = createTexture();
+	scene3.add(texture);
+	//Create game field
+	plateau = createPlateau();
+	//Create paddles
+	raquette1 = createRaquette();
+	raquette2 = createRaquette();
+	center2 = new THREE.Object3D(),
+	    geometry = new THREE.BoxGeometry(modelSize/4, modelSize/4, 0),
+	    material = new THREE.MeshBasicMaterial({ color:0x00ff00}),
+	    mesh = new THREE.Mesh(geometry, material);
+	center2.add(mesh);
+	scene4.add(center2);
+	center3 = new THREE.Object3D(),
+	    geometry = new THREE.BoxGeometry(modelSize/4, modelSize/4, 0),
+	    material = new THREE.MeshBasicMaterial({ color:0xf0fff0}),
+	    mesh = new THREE.Mesh(geometry, material);
+	center3.add(mesh);
+	scene4.add(center3);
+	
+
+	plateau.add(raquette1);
+	//plateau.add(raquette2);
+	scene4.add(plateau);
+	// Create a ball with sphere geometry
+        ball = createBall();
+	plateau.add(ball);
+	//Set ball position
+        ball.position.x = 0;
+        ball.position.y = 0;
+        // set ball above the table surface
+        ball.position.z = 5;
+        ball.receiveShadow = true;
+        ball.castShadow = true;
+	
+};
+
+
 function tick(){
 	requestAnimationFrame(tick);
 	if (video.readyState === video.HAVE_ENOUGH_DATA){
@@ -75,90 +137,10 @@ function tick(){
 		drawCorners(markers);
 		updateScenes(markers);
 		ballPhysics();
-
+		paddlePhysics();
 		render();
 	}
 };
-
-
-
-function ballPhysics() {
-        // if ball goes off the 'left' side (Player's side)
-        if (ball.position.y <= -fieldHeight/2)
-        {
-                // CPU scores
-                //score2++;
-                // update scoreboard HTML
-                //document.getElementById("scores").innerHTML = score1 + "-" + score2;
-                // reset ball to center
-                //resetBall(2);
-		ballDirY = -ballDirY;
-                //matchScoreCheck();
-        }
-        
-        // if ball goes off the 'right' side (CPU's side)
-        if (ball.position.y >= fieldHeight/2)
-        {       
-                // Player scores
-                //score1++;
-                // update scoreboard HTML
-                //document.getElementById("scores").innerHTML = score1 + "-" + score2;
-                // reset ball to center
-                //resetBall(1);
-		ballDirY = -ballDirY;
-                //matchScoreCheck();      
-        }
-        
-        // if ball goes off the top side (side of table)
-        if (ball.position.x <= -fieldWidth/2)
-        {
-                ballDirX = -ballDirX;
-        }       
-        // if ball goes off the bottom side (side of table)
-        if (ball.position.x >= fieldWidth/2)
-        {
-                ballDirX = -ballDirX;
-        }
-        
-        // update ball position over time
-        ball.position.x += ballDirX * ballSpeed;
-        ball.position.y += ballDirY * ballSpeed;
-        
-        // limit ball's y-speed to 2x the x-speed
-        // this is so the ball doesn't speed from left to right super fast
-        // keeps game playable for humans
-        if (ballDirX > ballSpeed * 2)
-        {
-                ballDirX = ballSpeed * 2;
-        }
-        else if (ballDirX < -ballSpeed * 2)
-        {
-                ballDirX = -ballSpeed * 2;
-        }
-}
-
-
-function resetBall(loser)
-{
-        // position the ball in the center of the table
-        ball.position.x = 0;
-        ball.position.y = 0;
-
-        // if player lost the last point, we send the ball to opponent
-        if (loser == 1)
-        {
-                ballDirX = -1;
-        }
-        // else if opponent lost, we send ball to player
-        else
-        {
-                ballDirX = 1;
-        }
-
-        // set the ball to move +ve in y plane (towards left from the camera)
-        ballDirY = 1;
-}
-
 
 function snapshot(){
 	context.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -185,87 +167,13 @@ function drawCorners(markers){
 	}
 };
 
-function createRenderers(){
-	renderer = new THREE.WebGLRenderer();
-	renderer.setClearColor(0xffffff, 1);
-	renderer.setSize(canvas.width, canvas.height);
-	document.getElementById("container").appendChild(renderer.domElement);
-	scene3 = new THREE.Scene();
-	  camera3 = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5);
-	  scene3.add(camera3);
-	
-	scene4 = new THREE.Scene();
-	//camera4 = new THREE.OrthographicCamera(-canvas.width,canvas.width,canvas.height,-canvas.height);
-	camera4 = new THREE.PerspectiveCamera(40, canvas.width / canvas.height, 1, 1000);
-	scene4.add(camera4);
-};
 function render(){
 	renderer.clear();
 	renderer.autoClear = false;
-		renderer.render(scene3, camera3);
+	renderer.render(scene3, camera3);
 	renderer.render(scene4, camera4);
 };
-function createScenes(){
-	texture = createTexture();
-	scene3.add(texture);
-	plateau = createPlateau();
-	raquette1 = createRaquette();
-	raquette2 = createRaquette();
-	plateau.add(raquette1);
-	plateau.add(raquette2);
-	scene4.add(plateau);
 
-	 // Create a ball with sphere geometry
-        ball = createBall();
-
-        // // add the sphere to the scene
-        plateau.add(ball);
-
-        ball.position.x = 0;
-        ball.position.y = 0;
-        // set ball above the table surface
-        ball.position.z = 5;
-        ball.receiveShadow = true;
-            ball.castShadow = true;
-
-};
-
-
-function createBall() {
-	var object = new THREE.Object3D(), 
-		geometry = new THREE.SphereGeometry(5,50,50),
-		material = new THREE.MeshLambertMaterial( { color : 0xD43001 });
-		mesh = new THREE.Mesh(geometry, material);
-		object.add(mesh);
-	return object;
-
-}
-function createRaquette(){
-	var object = new THREE.Object3D(),
-	    geometry = new THREE.BoxGeometry(modelSize, modelSize, 0),
-	    material = new THREE.MeshBasicMaterial({ color:0xfe0008}),
-	    mesh = new THREE.Mesh(geometry, material);
-	object.add(mesh);
-	return object;
-};
-function createTexture(){
-	var texture = new THREE.Texture(video),
-	    object = new THREE.Object3D(),
-	    geometry = new THREE.PlaneGeometry(1.0, 1.0, 0.0),
-	    material = new THREE.MeshBasicMaterial( {map: texture, depthTest: false, depthWrite: false} ),
-	    mesh = new THREE.Mesh(geometry, material);
-	object.position.z = -1;
-	object.add(mesh);
-	return object;
-};
-function createPlateau(){
-	var object = new THREE.Object3D(),
-	    geometry = new THREE.BoxGeometry(modelSize + offsetx, modelSize+offsety, 0),
-	    material = new THREE.MeshBasicMaterial( {color:0xff00ff, wireframe : true, wireframeLineWidth : 3} ),
-	    mesh = new THREE.Mesh(geometry, material);
-	object.add(mesh);
-	return object;
-};
 function updateScenes(markers){
 	var corners, corner, pose, i, j, k;
 	markersLength = markers.length;
@@ -291,74 +199,67 @@ function updateScenes(markers){
 				indexRaquette2 = i;
 			}
 		}
-	/*
-		if(indexPlateau != 0) {
-			var mark = markers[0];
-			markers[0] = markers[indexPlateau];
-			markers[indexPlateau] = mark;
-		}a
-*/
 
-		/*for (i = 0; i < markersLength; i++){
-			corners = markers[i].corners;
-			//On centre le repère image et le repère caméra
-			for (j = 0; j < corners.length; ++ j){
-					corner = corners[j];
-					corner.x = corner.x - (canvas.width / 2);
-					corner.y = (canvas.height / 2) - corner.y;
-			}
-
-			//Si c est le Plateau
-			if (i == indexPlateau) {
+		for(j = 0; j < markersLength; j++) {
+			if(j == indexPlateau) {
+				corners = markers[j].corners;
+				corners = centerLandMark(corners);
+				var idMatrix = [[1,0,0],[0,1,0],[0,0,1]];
 				pose = posit.pose(corners);
-				rotation_inv = transpose(pose.bestRotation);
-				translation_inv =multiplyMatrix(moins(rotation_inv), pose.bestTranslation);
-				updateObject(plateau, pose.bestRotation, pose.bestTranslation);
-			}
-			//Si c est un cible raquette.
-			else if (i == indexRaquette1) {
-					//inverser matrice de rotation translation du plateau puis 
-					// muttiplier t ou R de la raquette par la matrice inverdée calculée
-					// donc on a la raquette dans le repère plateau
-				pose = posit.pose(corners);
-				updateObject(raquette1, multiplyMatrix(pose.bestRotation, rotation_inv), multiplyMatrix(pose.bestTranslation, translation_inv));
-			}*/
-			/*else {
-				//On met à jour le terrain	
-				pose = posit.pose(corners);
-				updateObject(raquette2, pose.bestRotation, pose.bestTranslation);
-			}*/
-
-
-			for(j = 0; j < markersLength; j++) {
-				if(j == indexPlateau) {
-					corners = markers[j].corners;
-					corners = centerLandMark(corners);
-					pose = posit.pose(corners);
-					updateObject(plateau, pose.bestRotation, pose.bestTranslation);
-					plateau.visible = true;
-					rotation_inv = transpose(pose.bestRotation);
-					translation_inv =multiplyMatrix(moins(rotation_inv), pose.bestTranslation);
-					for (k = 0; k < markersLength; k++) {
-						if(k != indexPlateau) {
-							corners = markers[k].corners;
-							corners = centerLandMark(corners);
-							pose = posit.pose(corners);
-							if(k == indexRaquette1) {
-							//TODO : placer à gauche la raquette1
-								updateObject(raquette1, multiplyMatrix(pose.bestRotation, rotation_inv), multiplyMatrix(pose.bestTranslation, translation_inv));
-								raquette1.vsible = true;
-							}
-							else {
-							//TODO : placer à droite la raquette2
-								updateObject(raquette2, multiplyMatrix(pose.bestRotation, rotation_inv), multiplyMatrix(pose.bestTranslation, translation_inv));
-								raquette2.visible = true;
-							}
-						}	
-					}
-				}	
-			}
-		/*}*/
+				//On a les matrices de transformations du repère plateau
+				//exprimées dans le repère caméra.
+				//rotationMatrix : 3x3
+				//translationMatrix 1x3
+				var rotationMatrix = pose.bestRotation;
+				var translationMatrix = pose.bestTranslation;
+				//On place l'objet dans le repère caméra.
+				updateObject(plateau, rotationMatrix, translationMatrix);
+				//updateObject(center1, idMatrix, pose.bestTranslation);
+				//On calcule les matrices de transformation du repère caméra
+				//exprimées dans le repère plateau
+				rotationInvMatrix = rotationMatrix.transpose();
+				//multiplcation matrice 3x3 par matrice 3x1 -> matrice 3x1
+				translationInvMatrix = multiplyMatrix(moins(rotationInvMatrix), transposeVector(translationMatrix));
+				for (k = 0; k < markersLength; k++) {
+					if(k != indexPlateau) {
+						corners = markers[k].corners;
+						corners = centerLandMark(corners);
+						pose = posit.pose(corners);
+						//On calcule les matrices de transformation du repère raquette
+						//exprimées dans le repère caméra
+						var raqRotationMatrix = pose.bestRotation;
+						var raqTranslationMatrix = pose.bestTranslation
+						if(k == indexRaquette1) {
+							//updateObject(raquette1, pose.bestRotation, pose.bestTranslation);
+							//updateObject(center1, pose.bestRotation, pose.bestTranslation);
+							//On exprime la matrice de rotation pour exprimer le repère raquette
+							//dans le repère caméra
+							var newRotMatrix = multiplyMatrix(raqRotationMatrix, rotationInvMatrix);
+							var transInvLine = transposeColumnVectorToLineVector(translationInvMatrix);
+							var newTransLine = addVector(transInvLine, raqTranslationMatrix);
+							//translation de la motié de sa taille vers la droite 
+							//Evite que ça dépasse du cadre
+							//new_trans_line[0] = - (fieldWidth/2) +paddleWidth + decalage_raquette;
+							updateObject(raquette1, newRotMatrix, newTransLine);
+							raquette1.position.z = 0;
+							/*raquette1.position.x = 0;
+							raquette1.position.y = 0;*/
+							//raquette1.position.x = -(fieldWidth/2) + paddleWidth;
+						}
+						else {
+							//updateObject(raquette2, pose.bestRotation, pose.bestTranslation);
+							//updateObject(center2, pose.bestRotation, pose.bestTranslation);
+							var newRotMatrix = multiplyMatrix(raqRotationMatrix, rotationInvMatrix);
+							var transInvLine = transposeColumnVectorToLineVector(translationInvMatrix);
+							var newTransLine = addVector(transInvLine, raqTranslationMatrix);
+							//translation de la moitié de sa taille vers la gauche
+							//Evite que ça dépasse du cadre
+							updateObject(raquette2, newRotMatrix, newTransLine);
+						}
+					}	
+				}
+			}	
+		}
 	}
 	else {
 		raquette1.visible = false;
@@ -367,6 +268,7 @@ function updateScenes(markers){
 	}
 	texture.children[0].material.map.needsUpdate = true;
 };
+
 function updateObject(object, rotation, translation){
 	object.rotation.x = -Math.asin(-rotation[1][2]);
 	object.rotation.y = -Math.atan2(rotation[0][2], rotation[2][2]);
@@ -374,26 +276,78 @@ function updateObject(object, rotation, translation){
 	object.position.x = translation[0];
 	object.position.y = translation[1];
 	object.position.z = -translation[2];
-};
-function updatePose(id, error, rotation, translation){
-	var yaw = -Math.atan2(rotation[0][2], rotation[2][2]);
-	var pitch = -Math.asin(-rotation[1][2]);
-	var roll = Math.atan2(rotation[1][0], rotation[1][1]);
-	var d = document.getElementById(id);
-	d.innerHTML = " error: " + error
-		+ "<br/>"
-		+ " x: " + (translation[0] | 0)
-		+ " y: " + (translation[1] | 0)
-		+ " z: " + (translation[2] | 0)
-		+ "<br/>"
-		+ " yaw: " + Math.round(-yaw * 180.0/Math.PI)
-		+ " pitch: " + Math.round(-pitch * 180.0/Math.PI)
-		+ " roll: " + Math.round(roll * 180.0/Math.PI);
+	deep = -translation[2];
 };
 
 
-function transpose (rotation) {
+function transposeVector(v) {
+	var newVect = [1];
+	newVect[0] = [];
+	newVect[0][0] = v[0];
+	newVect[0][1] = v[1];
+	newVect[0][2] = v[2];
+return newVect;	
+}
+
+function transposeColumnVectorToLineVector(v) {
+	var newVect = [];
+	newVect[0] = v[0][0];
+	newVect[1] = v[0][1];
+	newVect[2] = v[0][2];
+return newVect;	
+}
+
+
+function addVector(v1, v2) {
+	var newVect = [];
+	newVect[0] = v1[0] + v2[0];
+	newVect[1] = v1[1] + v2[1];
+	newVect[2] = v1[2] + v2[2];
+	return newVect;
+}
+/*function transpose(a) {
+return a[0].map(function (_, c) { return a.map(function (r) { return r[c]; }); });
+}*/
+
+/*function transpose (rotation) {
 	var Rotation = rotation;
+	var n = rotation.length;
+	var m = rotation[0].length;
+	for (i = 0 ; i < n; i++) {
+		for (j = 0; j < m; j++) {
+			var old = rotation[i][j];
+			Rotation[i][j] = rotation[j][i];
+			Rotation[j][i] = old;
+		}
+	}
+	return Rotation;
+
+// Calculate the width and height of the Array
+  var a = rotation,
+    w = a.length ? a.length : 0,
+    h = a[0] instanceof Array ? a[0].length : 0;
+
+  // In case it is a zero matrix, no transpose routine needed.
+  if(h === 0 || w === 0) { return []; }
+
+  var i, j, t = [];
+
+  // Loop through every item in the outer array (height)
+  for(i=0; i<h; i++) {
+
+    // Insert a new row (array)
+    t[i] = [];
+
+    // Loop through every item per item in outer array (width)
+    for(j=0; j<w; j++) {
+
+      // Save transposed data.
+      t[i][j] = a[j][i];
+    }
+  }
+
+  return t;
+
 	var old12 = Rotation[0][1];
 	Rotation[0][1] = Rotation[1][0];
 	Rotation[1][0] = old12;	
@@ -405,16 +359,20 @@ function transpose (rotation) {
 	Rotation[1][2] = Rotation[2][1];
 	Rotation[2][1] = old23;	
 	return Rotation;
-};
+};*/
 
 
 function multiplyMatrix(m1, m2) {
 	var result = [];
-	for(var j = 0; j < m2.length; j++) {
+	var lignes1 = m1.length;
+	var colonnes1 = m1[0].length;
+	var lignes2 = m2.length;
+	var colonnes2 = m2[0].length;
+	for(var j = 0; j < lignes2; j++) {
 		result[j] = [];
-		for(var k = 0; k < m1[0].length; k++) {
+		for(var k = 0; k < colonnes1; k++) {
 			var sum = 0;
-			for(var i = 0; i < m1.length; i++) {
+			for(var i = 0; i < lignes1; i++) {
 				sum += m1[i][k] * m2[j][i];
 			}
 			result[j].push(sum);
@@ -445,7 +403,6 @@ function centerLandMark (corners) {
 	}
 	return result;
 }
-
 
 window.onload = onLoad;
 </script>
