@@ -15,7 +15,7 @@
 var video, canvas, context, imageData, detector, posit;
 var renderer;
 var markersLength;
-var scene3, scene4;
+var scene3, scene4, sceneTrash;
 var camera3, camera4;
 var rotation_inv, translation_inv;
 var deep = 0;
@@ -88,6 +88,8 @@ function createRenderers(){
 	//camera4 = new THREE.OrthographicCamera(-canvas.width,canvas.width,canvas.height,-canvas.height);
 	camera4 = new THREE.PerspectiveCamera(50, canvas.width / canvas.height, 1, 10000);
 	scene4.add(camera4);
+	
+	sceneTrash = new THREE.Scene();
 };
 
 function createScenes(){
@@ -99,18 +101,6 @@ function createScenes(){
 	//Create paddles
 	raquette1 = createRaquette();
 	raquette2 = createRaquette();
-	center2 = new THREE.Object3D(),
-	    geometry = new THREE.BoxGeometry(modelSize/4, modelSize/4, 0),
-	    material = new THREE.MeshBasicMaterial({ color:0x00ff00}),
-	    mesh = new THREE.Mesh(geometry, material);
-	center2.add(mesh);
-	scene4.add(center2);
-	center3 = new THREE.Object3D(),
-	    geometry = new THREE.BoxGeometry(modelSize/4, modelSize/4, 0),
-	    material = new THREE.MeshBasicMaterial({ color:0xf0fff0}),
-	    mesh = new THREE.Mesh(geometry, material);
-	center3.add(mesh);
-	scene4.add(center3);
 	
 
 	plateau.add(raquette1);
@@ -186,18 +176,24 @@ function updateScenes(markers){
 		var indexRaquette1 = -1;
 		var indexRaquette2 = -1;
 		//On récupère les indices des markers
+		sceneTrash.add(plateau);
+		sceneTrash.add(raquette1);
+		sceneTrash.add(raquette2);
 		for (i = 0 ; i < markersLength; i++) {
 			if(markers[i].id == idPlateau) {
 				PlateauMarker = markers[i];
 				indexPlateau = i;
+				scene4.add(plateau);
 			}
 			else if (markers[i].id == idRaquette1) {
 				Raquette1Marker = markers[i];
 				indexRaquette1 = i;
+				plateau.add(raquette1);
 			}
 			else {
 				Raquette2Marker = markers[i];
 				indexRaquette2 = i;
+				plateau.add(raquette2);
 			}
 		}
 
@@ -215,7 +211,6 @@ function updateScenes(markers){
 				var translationMatrix = pose.bestTranslation;
 				//On place lobjet dans le repère caméra.
 				updateObject(plateau, rotationMatrix, translationMatrix);
-				//updateObject(center1, idMatrix, pose.bestTranslation);
 				//On calcule les matrices de transformation du repère caméra
 				//exprimées dans le repère plateau
 				rotationInvMatrix = rotationMatrix.transpose();
@@ -240,30 +235,14 @@ function updateScenes(markers){
 							pose.bestTranslation[2]);
 						var raqTransformationMatrix = transformationMatrix.applyToVector3Array(raqTranslationMatrix);
 						if(k == indexRaquette1) {
-							//On exprime la matrice de rotation pour exprimer le repère raquette
-							//dans le repère caméra
-							var newRotMatrix = multiplyMatrix(raqRotationMatrix, rotationInvMatrix);
-							var transInvLine = transposeColumnVectorToLineVector(translationInvMatrix);
-							var newTransLine = addVector(transInvLine, raqTranslationMatrix);
-							//translation de la motié de sa taille vers la droite 
-							//Evite que ça dépasse du cadre
-							//updateObject(raquette1, idMatrix, newTransLine);
 							raquette1.position.z = 0;
 							raquette1.position.x = -raqTransformationMatrix.y;
 							raquette1.position.y = -(fieldHeight/2) + paddleHeight/2 + decalage_raquette;
 						}
 						else {
-							//updateObject(raquette2, pose.bestRotation, pose.bestTranslation);
-							//updateObject(center2, pose.bestRotation, pose.bestTranslation);
-							var newRotMatrix = multiplyMatrix(raqRotationMatrix, rotationInvMatrix);
-							var transInvLine = transposeColumnVectorToLineVector(translationInvMatrix);
-							var newTransLine = addVector(transInvLine, raqTranslationMatrix);
-							//translation de la moitié de sa taille vers la gauche
-							//Evite que ça dépasse du cadre
 							raquette2.position.z = 0;
 							raquette2.position.x = -raqTransformationMatrix.y;
 							raquette2.position.y = (fieldHeight/2) - paddleHeight/2 - decalage_raquette;
-							//updateObject(raquette2, newRotMatrix, newTransLine);
 						}
 					}	
 				}
