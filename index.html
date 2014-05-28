@@ -169,10 +169,7 @@ function updateScenes(markers){
 	var corners, corner, pose, i, j, k;
 	markersLength = markers.length;
 	if(markersLength > 0) {
-		var PlateauMarker;
 		var indexPlateau = -1;
-		var Raquette1Marker;
-		var Raquette2Marker;
 		var indexRaquette1 = -1;
 		var indexRaquette2 = -1;
 		//On récupère les indices des markers
@@ -181,17 +178,14 @@ function updateScenes(markers){
 		sceneTrash.add(raquette2);
 		for (i = 0 ; i < markersLength; i++) {
 			if(markers[i].id == idPlateau) {
-				PlateauMarker = markers[i];
 				indexPlateau = i;
 				scene4.add(plateau);
 			}
 			else if (markers[i].id == idRaquette1) {
-				Raquette1Marker = markers[i];
 				indexRaquette1 = i;
 				plateau.add(raquette1);
 			}
 			else {
-				Raquette2Marker = markers[i];
 				indexRaquette2 = i;
 				plateau.add(raquette2);
 			}
@@ -201,7 +195,6 @@ function updateScenes(markers){
 			if(j == indexPlateau) {
 				corners = markers[j].corners;
 				corners = centerLandMark(corners);
-				var idMatrix = [[1,0,0],[0,1,0],[0,0,1]];
 				pose = posit.pose(corners);
 				//On a les matrices de transformations du repère plateau
 				//exprimées dans le repère caméra.
@@ -217,9 +210,9 @@ function updateScenes(markers){
 				//multiplcation matrice 3x3 par matrice 3x1 -> matrice 3x1
 				translationInvMatrix = multiplyMatrix(moins(rotationInvMatrix), transposeVector(translationMatrix));
 				var transformationMatrix = new THREE.Matrix4(
-					rotationMatrix[0][0], rotationMatrix[0][1], rotationMatrix[0][2], translationInvMatrix[0],
-					rotationMatrix[1][0], rotationMatrix[1][1], rotationMatrix[1][2], translationInvMatrix[1],
-					rotationMatrix[2][0], rotationMatrix[2][1], rotationMatrix[2][2], translationInvMatrix[2],
+					rotationInvMatrix[0][0], rotationInvMatrix[0][1], rotationInvMatrix[0][2], translationInvMatrix[0],
+					rotationInvMatrix[1][0], rotationInvMatrix[1][1], rotationInvMatrix[1][2], translationInvMatrix[1],
+					rotationInvMatrix[2][0], rotationInvMatrix[2][1], rotationInvMatrix[2][2], translationInvMatrix[2],
 					0,0,0,1);
 				for (k = 0; k < markersLength; k++) {
 					if(k != indexPlateau) {
@@ -293,62 +286,6 @@ function addVector(v1, v2) {
 	newVect[2] = v1[2] + v2[2];
 	return newVect;
 }
-/*function transpose(a) {
-return a[0].map(function (_, c) { return a.map(function (r) { return r[c]; }); });
-}*/
-
-/*function transpose (rotation) {
-	var Rotation = rotation;
-	var n = rotation.length;
-	var m = rotation[0].length;
-	for (i = 0 ; i < n; i++) {
-		for (j = 0; j < m; j++) {
-			var old = rotation[i][j];
-			Rotation[i][j] = rotation[j][i];
-			Rotation[j][i] = old;
-		}
-	}
-	return Rotation;
-
-// Calculate the width and height of the Array
-  var a = rotation,
-    w = a.length ? a.length : 0,
-    h = a[0] instanceof Array ? a[0].length : 0;
-
-  // In case it is a zero matrix, no transpose routine needed.
-  if(h === 0 || w === 0) { return []; }
-
-  var i, j, t = [];
-
-  // Loop through every item in the outer array (height)
-  for(i=0; i<h; i++) {
-
-    // Insert a new row (array)
-    t[i] = [];
-
-    // Loop through every item per item in outer array (width)
-    for(j=0; j<w; j++) {
-
-      // Save transposed data.
-      t[i][j] = a[j][i];
-    }
-  }
-
-  return t;
-
-	var old12 = Rotation[0][1];
-	Rotation[0][1] = Rotation[1][0];
-	Rotation[1][0] = old12;	
-	var old13 = Rotation[0][2];
-	Rotation[0][2] = Rotation[2][0];
-	Rotation[2][0] = old13;	
-
-	var old23 = Rotation[1][2];
-	Rotation[1][2] = Rotation[2][1];
-	Rotation[2][1] = old23;	
-	return Rotation;
-};*/
-
 
 function multiplyMatrix(m1, m2) {
 	var result = [];
