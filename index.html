@@ -21,12 +21,13 @@ var rotation_inv, translation_inv;
 var deep = 0;
 //Paddles variables
 var modelSize = 60.0; //millimeters
+var raq1SizeX, raq2SizeX;
 var offsetx = modelSize*2;
 var offsety = modelSize*4;
 var decalage_raquette = 5;
 var raquette1, raquette2;
 var idPlateau = 17;
-var idRaquette1 = 213;
+var idRaquette1 = 69;
 var raquette1DirY = 0, raquette2DirY = 0, paddleSpeed = 3;
 var paddleWidth = modelSize, paddleHeight = modelSize/4, paddleDepth = 10, paddleQuality = 1;
 var center1, center2, center3;
@@ -38,7 +39,7 @@ var fieldHeight = modelSize + offsety;
 //ball variables
 var ball;
 var ballDirX = 1, ballDirY = 1, ballSpeed = 2;
-
+var goBall = false;
 
 function onLoad(){
 	video = document.getElementById("video");
@@ -99,9 +100,10 @@ function createScenes(){
 	//Create game field
 	plateau = createPlateau();
 	//Create paddles
-	raquette1 = createRaquette();
-	raquette2 = createRaquette();
-	
+	raquette1 = createRaquette1();
+	raq1SizeX = raquette1.scale.x;
+	raquette2 = createRaquette2();
+	raq2SizeX = raquette2.scale.x;
 
 	plateau.add(raquette1);
 	//plateau.add(raquette2);
@@ -117,6 +119,15 @@ function createScenes(){
         ball.receiveShadow = true;
         ball.castShadow = true;
 	
+	var light = createPointLight();
+	scene4.add(light);
+	
+	var spotLight = createSpotLight();
+	 scene4.add(spotLight);
+	
+	// MAGIC SHADOW CREATOR DELUXE EDITION with Lights PackTM DLC
+	renderer.shadowMapEnabled = true;	
+
 };
 
 
@@ -127,7 +138,14 @@ function tick(){
 		var markers = detector.detect(imageData);
 		drawCorners(markers);
 		updateScenes(markers);
-		ballPhysics();
+		document.onkeydown = 	function(event) {
+			if (event.KeyCode = 13) {
+				goBall = !goBall;
+			}
+		}
+		if (goBall) {
+			ballPhysics();
+		}
 		paddlePhysics();
 		render();
 	}
@@ -228,14 +246,16 @@ function updateScenes(markers){
 							pose.bestTranslation[2]);
 						var raqTransformationMatrix = transformationMatrix.applyToVector3Array(raqTranslationMatrix);
 						if(k == indexRaquette1) {
-							raquette1.position.z = 0;
+							raquette1.position.z = paddleHeight/2;
 							raquette1.position.x = -raqTransformationMatrix.y;
 							raquette1.position.y = -(fieldHeight/2) + paddleHeight/2 + decalage_raquette;
+							raquette1.scale.x = raq1SizeX;
 						}
 						else {
-							raquette2.position.z = 0;
+							raquette2.position.z = paddleHeight/2;
 							raquette2.position.x = -raqTransformationMatrix.y;
 							raquette2.position.y = (fieldHeight/2) - paddleHeight/2 - decalage_raquette;
+							raquette2.scale.x = raq2SizeX;
 						}
 					}	
 				}

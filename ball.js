@@ -6,6 +6,7 @@ function ballPhysics() {
                 // update scoreboard HTML
                 document.getElementById("score1").innerHTML = score1;
                 // reset ball to center
+		goBall = false;
                 resetBall(2);
 		//ballDirX = -ballDirX;
                 matchScoreCheck();
@@ -17,6 +18,7 @@ function ballPhysics() {
                 // update scoreboard HTML
                 document.getElementById("score2").innerHTML = score2;
                 // reset ball to center
+		goBall = false;
                 resetBall(1);
 		//ballDirX = -ballDirX;
                 matchScoreCheck();
@@ -45,7 +47,6 @@ function ballPhysics() {
         }
 }
 
-
 function resetBall(loser) {
         // position the ball in the center of the table
         ball.position.x = 0;
@@ -64,52 +65,41 @@ function resetBall(loser) {
         ballDirX = 1;
 }
 
-function paddlePhysics()
-{
-	// PLAYER PADDLE LOGIC
-	
+function paddlePhysics() {
 	// if ball is aligned with paddle1 on x plane
 	// remember the position is the CENTER of the object
 	// we only check between the front and the middle of the paddle (one-way collision)
 	if (ball.position.y <= raquette1.position.y + paddleHeight
-	&& ball.position.y >= raquette1.position.y)
-	{
+	&& ball.position.y >= raquette1.position.y) {
 		// and if ball is aligned with paddle1 on y plane
 		if (ball.position.x <= raquette1.position.x + paddleWidth/2
-		&& ball.position.x >= raquette1.position.x - paddleWidth/2)
-		{
+		&& ball.position.x >= raquette1.position.x - paddleWidth/2) {
 			// and if ball is travelling towards player (-ve direction)
-			if (ballDirY < 0)
-			{
-			// stretch the paddle to indicate a hit
-			//raquette1.scale.y = 15;
-			// switch direction of ball travel to create bounce
-			ballDirY = -ballDirY;
-			// we impact ball angle when hitting it
-			// this is not realistic physics, just spices up the gameplay
-			// allows you to 'slice' the ball to beat the opponent
-			ballDirX -= raquette1DirY * 0.7;
+			if (ballDirY < 0) {
+				// stretch the paddle to indicate a hit
+				raquette1.scale.x *=1.5;
+				// switch direction of ball travel to create bounce
+				ballDirY = -ballDirY;
+				// we impact ball angle when hitting it
+				// this is not realistic physics, just spices up the gameplay
+				// allows you to 'slice' the ball to beat the opponent
+				ballDirX -= raquette1DirY * 0.7;
 			}
 		}
 	}
 
-	// OPPONENT PADDLE LOGIC
-	
 	// if ball is aligned with paddle2 on x plane
 	// remember the position is the CENTER of the object
 	// we only check between the front and the middle of the paddle (one-way collision)
-	if (ball.position.y <= raquette2.position.y + paddleHeight
-	&& ball.position.y >= raquette2.position.y)
-	{
+	if (ball.position.y >= raquette2.position.y - paddleHeight
+	&& ball.position.y <= raquette2.position.y) {
 		// and if ball is aligned with paddle2 on y plane
 		if (ball.position.x <= raquette2.position.x + paddleWidth/2
-		&& ball.position.x >= raquette2.position.x - paddleWidth/2)
-		{
+		&& ball.position.x >= raquette2.position.x - paddleWidth/2) {
 			// and if ball is travelling towards opponent (+ve direction)
-			if (ballDirY > 0)
-			{
+			if (ballDirY > 0) {
 				// stretch the paddle to indicate a hit
-				//raquette2.scale.y = 15;	
+				raquette2.scale.x *= 1.5;	
 				// switch direction of ball travel to create bounce
 				ballDirY = -ballDirY;
 				// we impact ball angle when hitting it
