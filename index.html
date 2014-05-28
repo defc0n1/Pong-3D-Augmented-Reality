@@ -20,8 +20,8 @@ var rotation_inv, translation_inv;
 var deep = 0;
 //Paddles variables
 var modelSize = 60.0; //millimeters
-var offsetx = modelSize*4;
-var offsety = modelSize*2;
+var offsetx = modelSize*2;
+var offsety = modelSize*4;
 var decalage_raquette = 0;
 var raquette1, raquette2;
 var idPlateau = 17;
@@ -408,12 +408,12 @@ window.onload = onLoad;
 </script>
 </head>
 <body style="text-align: center; font-family: monospace;">
-<video id="video" width=320 height=240 autoplay="true" style="display:none;"></video>
+<video id="video" width=640 height=480 autoplay="true" style="display:none;"></video>
 <div style="margin: 10px;"><strong>PONG</strong></div>
 <div style="width: 100%;">
-<div style="width: 650px; margin-left:auto; margin-right:auto;">
-<canvas id="canvas" style="width: 320px; height: 240px; float: left; border: solid 1px black;"></canvas>
-<div id="container" style="width: 320px; height: 240px; float: left; border: solid 1px black; background: green;"></div>
+<div style="width: 1300px; margin-left:auto; margin-right:auto;">
+<canvas id="canvas" style="width: 640px; height: 480px; float: left; border: solid 1px black;"></canvas>
+<div id="container" style="width: 640px; height: 480px; float: left; border: solid 1px black; background: green;"></div>
 <div style="clear: both;"></div>
 </div>
 </div>
