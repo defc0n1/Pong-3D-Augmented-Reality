@@ -10,8 +10,8 @@ function matchScoreCheck()
         // stop the ball
         ballSpeed = 0;
         // write to the banner
-        document.getElementById("scores").innerHTML = "Player 1 wins!";
-        document.getElementById("winnerBoard").innerHTML = "Refresh to play again";
+        document.getElementById("scores").innerHTML = "Joueur 1 a gagné!";
+        document.getElementById("winnerBoard").innerHTML = "Rafraîchir la page pour rejouer";
         // make paddle bounce up and down
         //bounceTime++;
         //paddle1.position.z = Math.sin(bounceTime * 0.1) * 10;
@@ -25,8 +25,8 @@ function matchScoreCheck()
         // stop the ball
         ballSpeed = 0;
         // write to the banner
-        document.getElementById("scores").innerHTML = "Player2 wins!";
-        document.getElementById("winnerBoard").innerHTML = "Refresh to play again";
+        document.getElementById("scores").innerHTML = "Joueur 2 a gagné";
+        document.getElementById("winnerBoard").innerHTML = "Rafraîchir la page pour rejouer";
         // make paddle bounce up and down
         //bounceTime++;
         //paddle2.position.z = Math.sin(bounceTime * 0.1) * 10;

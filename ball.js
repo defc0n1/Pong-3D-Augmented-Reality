@@ -4,7 +4,7 @@ function ballPhysics() {
                 // Player1 scores
                 score1++;
                 // update scoreboard HTML
-                document.getElementById("scores").innerHTML = score1 + "-" + score2;
+                document.getElementById("score1").innerHTML = score1;
                 // reset ball to center
                 resetBall(2);
 		//ballDirX = -ballDirX;
@@ -15,7 +15,7 @@ function ballPhysics() {
                 // Player2 scores
                 score2++;
                 // update scoreboard HTML
-                document.getElementById("scores").innerHTML = score1 + "-" + score2;
+                document.getElementById("score2").innerHTML = score2;
                 // reset ball to center
                 resetBall(1);
 		//ballDirX = -ballDirX;
