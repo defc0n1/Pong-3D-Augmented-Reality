@@ -8,8 +8,9 @@
 <script type="text/javascript" src="arucojs/src/cv.js"></script> 
 <script type="text/javascript" src="arucojs/src/aruco.js"></script> 
 <script type="text/javascript" src="creation.js"></script> 
-<script type="text/javascript" src="ball.js"></script> 
-<script type="text/javascript" src="transpose.js"></script> 
+<script type="text/javascript" src="ball.js"></script>
+<script type="text/javascript" src="score.js"></script>
+<script type="text/javascript" src="transpose.js"></script>
 <script>
 var video, canvas, context, imageData, detector, posit;
 var renderer;
@@ -417,6 +418,12 @@ window.onload = onLoad;
 <div style="clear: both;"></div>
 </div>
 </div>
+</div>
+<div id="scoreboard">
+    <strong>SCORE</strong><br>
+    <h1>Joueur 1 vs Joueur 2</h1>
+    <h1 id="scores">0 - 0</h1>
+    <h2 id="winnerBoard">Le premier joueur à 5 points gagne!</h2>
 </div>
 </body>
 </html>
