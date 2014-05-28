@@ -1,25 +1,25 @@
 function ballPhysics() {
         // if ball goes off the 'left' side (Player's side)
         if (ball.position.y <= -fieldHeight/2) {
-                // CPU scores
-                //score2++;
+                // Player1 scores
+                score1++;
                 // update scoreboard HTML
-                //document.getElementById("scores").innerHTML = score1 + "-" + score2;
+                document.getElementById("scores").innerHTML = score1 + "-" + score2;
                 // reset ball to center
                 resetBall(2);
 		//ballDirX = -ballDirX;
-                //matchScoreCheck();
+                matchScoreCheck();
         }
         // if ball goes off the 'right' side (CPU's side)
         if (ball.position.y >= fieldHeight/2) {       
-                // Player scores
-                //score1++;
+                // Player2 scores
+                score2++;
                 // update scoreboard HTML
-                //document.getElementById("scores").innerHTML = score1 + "-" + score2;
+                document.getElementById("scores").innerHTML = score1 + "-" + score2;
                 // reset ball to center
                 resetBall(1);
 		//ballDirX = -ballDirX;
-                //matchScoreCheck();      
+                matchScoreCheck();
         }
         // if ball goes off the top side (side of table)
         if (ball.position.x <= -fieldWidth/2) {
